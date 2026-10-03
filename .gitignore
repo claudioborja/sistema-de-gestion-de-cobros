@@ -129,6 +129,8 @@ output/
 writable/local-*
 writable/mysql-*
 .playwright-cli/
+/tmp/
+/pass.wd
 
 #-------------------------
 # Local project notes

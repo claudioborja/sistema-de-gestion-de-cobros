@@ -26,6 +26,7 @@ class Filters extends BaseFilters
      */
     public array $aliases = [
         'internal'     => \App\Filters\InternalAccess::class,
+        'portal'       => \App\Filters\PortalAccess::class,
         'csrf'          => CSRF::class,
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,

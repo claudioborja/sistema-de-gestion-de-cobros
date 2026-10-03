@@ -1,10 +1,18 @@
 <?php
 namespace App\Controllers;
+
+use App\Services\DashboardService;
+
 final class Dashboard extends BaseController
 {
     public function index(): string
     {
-        $db=db_connect();
-        return view('dashboard',['title'=>'Inicio','total'=>$db->table('clientes')->countAllResults(),'active'=>$db->table('clientes')->where('activo',1)->countAllResults(),'recent'=>$db->table('clientes')->orderBy('id','DESC')->limit(5)->get()->getResultArray()]);
+        $overview = (new DashboardService())->overview((int) auth()->id());
+
+        return $this->renderPage('dashboard', $overview + [
+            'title' => 'Inicio',
+            'description' => 'Revisa el estado de la operación y continúa las tareas principales.',
+            'pagePattern' => 'dashboard',
+        ]);
     }
 }

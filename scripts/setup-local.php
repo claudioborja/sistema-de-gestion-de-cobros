@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 // Local-only bootstrap: a private MySQL instance, never the system server.
+// TCP is bound to loopback so Apache can connect even with PrivateTmp=true.
 if (PHP_SAPI !== 'cli') { exit(1); }
 umask(0077);
 $root = dirname(__DIR__);
@@ -21,21 +22,25 @@ if (!is_dir($dir . '/data/mysql')) {
     $run('mysqld --no-defaults --initialize-insecure --datadir=' . escapeshellarg($dir . '/data') . ' --log-error=' . escapeshellarg($dir . '/mysql.log'));
 }
 $socket = $dir . '/mysql.sock';
+$host = '127.0.0.1';
+$port = 3307;
 try { $db = @new mysqli('localhost', 'root', '', '', 0, $socket); } catch (Throwable) {
-    $run('mysqld --no-defaults --datadir=' . escapeshellarg($dir . '/data') . ' --socket=' . escapeshellarg($socket) . ' --pid-file=' . escapeshellarg($dir . '/mysql.pid') . ' --log-error=' . escapeshellarg($dir . '/mysql.log') . ' --skip-networking --mysqlx=OFF --daemonize');
+    $run('mysqld --no-defaults --datadir=' . escapeshellarg($dir . '/data') . ' --socket=' . escapeshellarg($socket) . ' --pid-file=' . escapeshellarg($dir . '/mysql.pid') . ' --log-error=' . escapeshellarg($dir . '/mysql.log') . ' --bind-address=' . escapeshellarg($host) . ' --port=' . $port . ' --mysqlx=OFF --daemonize');
     $db = new mysqli('localhost', 'root', '', '', 0, $socket);
 }
 $db->query('CREATE DATABASE IF NOT EXISTS cobros_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci');
 $db->query('CREATE DATABASE IF NOT EXISTS cobros_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci');
 $password = $db->real_escape_string($runtime['password']);
-$db->query("CREATE USER IF NOT EXISTS 'cobros_app'@'localhost' IDENTIFIED BY '$password'");
-foreach (['cobros_dev', 'cobros_test'] as $database) {
-    $db->query("GRANT ALL PRIVILEGES ON `$database`.* TO 'cobros_app'@'localhost'");
+foreach (['localhost', '127.0.0.1'] as $databaseHost) {
+    $db->query("CREATE USER IF NOT EXISTS 'cobros_app'@'$databaseHost' IDENTIFIED BY '$password'");
+    foreach (['cobros_dev', 'cobros_test'] as $database) {
+        $db->query("GRANT ALL PRIVILEGES ON `$database`.* TO 'cobros_app'@'$databaseHost'");
+    }
 }
 if (!is_file($root . '/.env')) {
     $env = "CI_ENVIRONMENT = development\napp.baseURL = 'http://127.0.0.1:8080/'\n";
     foreach (['default' => 'cobros_dev', 'tests' => 'cobros_test'] as $group => $database) {
-        $env .= "database.$group.hostname = '$socket'\ndatabase.$group.database = '$database'\ndatabase.$group.username = 'cobros_app'\ndatabase.$group.password = '$password'\n";
+        $env .= "database.$group.hostname = '$host'\ndatabase.$group.port = $port\ndatabase.$group.database = '$database'\ndatabase.$group.username = 'cobros_app'\ndatabase.$group.password = '$password'\n";
     }
     file_put_contents($root . '/.env', $env);
     chmod($root . '/.env', 0600);

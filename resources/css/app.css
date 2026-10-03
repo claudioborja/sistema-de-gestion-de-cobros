@@ -1,42 +1,68 @@
 @import "tailwindcss";
+@import "./theme.css";
+@import "./layout.css";
+@import "./utilities.css";
+
 @source "../../app/Views";
-@plugin "daisyui" { themes: light --default; logs: false; }
+
+@plugin "daisyui" {
+  themes: false;
+  logs: false;
+}
+
 @plugin "daisyui/theme" {
-  name: "light"; default: true;
-  --color-primary: #17675d; --color-primary-content: #ffffff;
-  --color-neutral: #182c3a; --color-neutral-content: #edf4f7;
-  --color-base-100: #ffffff; --color-base-200: #f3f6f8; --color-base-300: #dce4e9; --color-base-content: #213745;
-  --radius-box: .75rem; --radius-field: .45rem; --depth: 0;
+  name: "cobros";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+  --color-base-100: #ffffff;
+  --color-base-200: #f5f8fe;
+  --color-base-300: #d9e5f7;
+  --color-base-content: #102a56;
+  --color-primary: #1e40af;
+  --color-primary-content: #ffffff;
+  --color-secondary: #163b78;
+  --color-secondary-content: #ffffff;
+  --color-accent: #0284c7;
+  --color-accent-content: #ffffff;
+  --color-neutral: #102a56;
+  --color-neutral-content: #eff6ff;
+  --color-info: #0369a1;
+  --color-info-content: #ffffff;
+  --color-success: #15803d;
+  --color-success-content: #ffffff;
+  --color-warning: #b45309;
+  --color-warning-content: #ffffff;
+  --color-error: #b42318;
+  --color-error-content: #ffffff;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
 }
-@layer base {
-  body { font-family: 'Segoe UI', system-ui, sans-serif; }
-  h1,h2,h3 { letter-spacing: -.025em; }
-  :focus-visible { outline: 3px solid #17675d; outline-offset: 3px; }
-  button,a { touch-action: manipulation; }
-}
+
 @layer components {
-  .app-shell { display:grid; grid-template-columns: 230px minmax(0,1fr); min-height:100dvh; }
-  .sidebar { padding:28px 20px; display:flex; flex-direction:column; gap:32px; background:var(--color-neutral); color:var(--color-neutral-content); }
-  .nav-link { display:flex; align-items:center; gap:12px; padding:12px; border-radius:8px; color:#c1d0da; }
-  .nav-link:hover,.nav-link[aria-current=page] { background:#2a4353; color:white; }
-  .page { max-width:1250px; padding:36px 42px; margin:auto; }
-  .page-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:28px; }
-  .eyebrow { font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; color:#4a626f; }
-  .field { display:grid; gap:7px; font-size:14px; font-weight:600; }
-  .field .input,.field select,.field textarea { width:100%; font-weight:400; }
-  .field-error { font-size:13px; color:#a12432; font-weight:400; }
-  .panel { background:white; border:1px solid var(--color-base-300); border-radius:12px; }
-  .table :where(th,td) { padding:17px 20px; }
-  .table th { background:#f8fafb; font-size:12px; letter-spacing:.04em; color:#4a626f; }
-  .empty { padding:64px 24px; text-align:center; }
-  .icon { width:20px; height:20px; flex:none; }
-  @media(max-width:800px) {
-    .app-shell {grid-template-columns:minmax(0,1fr);}
-    .sidebar {padding:16px; gap:14px;}
-    .sidebar nav {display:flex;gap:6px;flex-wrap:wrap;}
-    .sidebar .sidebar-footer {display:none;}
-    .page {padding:24px 16px;}
-    .page-heading {flex-wrap:wrap;}
+  .form-help {
+    display: inline-flex;
+    margin-inline-start: 0.5rem;
+    vertical-align: middle;
+    flex-shrink: 0;
+    cursor: help;
   }
+  .form-help-content {
+    width: min(20rem, calc(100vw - 2rem));
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: normal;
+    text-align: start;
+  }
+  .form-help:not(:hover) > .form-help-content { display: none; }
+  :where(.btn, .input, .select) { min-height: 44px; }
+  .btn-square { width: 44px; min-width: 44px; }
+  .breadcrumbs a { display: inline-flex; min-height: 44px; align-items: center; }
 }
-@media(prefers-reduced-motion:reduce) {*,*::before,*::after {scroll-behavior:auto!important;animation:none!important;transition:none!important;}}

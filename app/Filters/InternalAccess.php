@@ -8,9 +8,16 @@ final class InternalAccess implements FilterInterface
 {
     public function before(RequestInterface $request,$arguments=null)
     {
-        if (!auth()->loggedIn()) {return redirect()->to(site_url('login'));}
-        if (!Access::can((int)auth()->id(),$arguments[0] ?? 'clientes.ver')) {
-            return service('response')->setStatusCode(403)->setBody(view('errors/access',['title'=>'Acceso restringido']));
+        if (!auth()->loggedIn()) {
+            if (str_contains($request->getHeaderLine('Accept'), 'application/json')) {
+                return service('response')->setStatusCode(401)->setJSON(['error' => 'La sesión venció.']);
+            }
+            return redirect()->to(site_url('login'));
+        }
+        foreach ($arguments ?: ['clientes.ver'] as $permission) {
+            if (!Access::can((int)auth()->id(),$permission)) {
+                return service('response')->setStatusCode(403)->setBody(view('errors/access',['title'=>'Acceso restringido']));
+            }
         }
     }
     public function after(RequestInterface $request,ResponseInterface $response,$arguments=null)

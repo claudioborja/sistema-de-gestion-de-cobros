@@ -1,10 +1,84 @@
-<?= $this->extend('layout') ?><?= $this->section('content') ?>
-<?php $canEdit=\App\Services\Access::can((int)auth()->id(),'clientes.editar'); ?>
-<div class="page-heading"><div><p class="eyebrow mb-2">Directorio</p><h1 class="text-3xl font-semibold">Clientes</h1><p class="text-base-content/65 mt-2">Información de contacto, identificación y estado.</p></div><?php if (\App\Services\Access::can((int)auth()->id(),'clientes.crear')): ?><a class="btn btn-primary" href="<?= site_url('clientes/nuevo') ?>"><i data-lucide="plus" class="icon" aria-hidden="true"></i>Nuevo cliente</a><?php endif ?></div>
-<div class="panel"><form method="get" class="p-5 flex flex-wrap gap-3 border-b border-base-300"><label class="input flex-1 min-w-40"><i data-lucide="search" class="icon" aria-hidden="true"></i><input name="q" value="<?= esc($q,'attr') ?>" aria-label="Buscar por nombre o identificación" placeholder="Buscar por nombre o identificación" maxlength="100"></label><select name="estado" aria-label="Estado" class="select w-auto"><option value="">Todos los estados</option><option value="1" <?= $status==='1'?'selected':'' ?>>Activos</option><option value="0" <?= $status==='0'?'selected':'' ?>>Inactivos</option></select><button class="btn" type="submit">Buscar</button></form>
-<?php if (!$rows): ?><div class="empty"><i data-lucide="users" class="w-10 h-10 mx-auto mb-4 text-base-content/40" aria-hidden="true"></i><h2 class="text-xl font-semibold">No hay clientes para mostrar</h2><p class="mt-2 text-base-content/65">Registra un cliente o ajusta los filtros de búsqueda.</p></div>
-<?php else: ?><div class="overflow-x-auto"><table class="table"><caption class="sr-only">Directorio de clientes</caption><thead><tr><th>Cliente</th><th>Identificación</th><th>Estado</th><th><span class="sr-only">Acciones</span></th></tr></thead><tbody>
-<?php foreach ($rows as $row): ?><tr><td><div class="font-semibold"><?= esc($row['nombre']) ?></div><span class="text-xs text-base-content/55">Cliente #<?= $row['id'] ?></span></td><td><?= esc($row['identificacion'] ?: 'No informada') ?></td><td><span class="badge <?= $row['activo']?'badge-success badge-soft':'badge-ghost' ?>"><?= $row['activo']?'Activo':'Inactivo' ?></span></td><td><?php if ($canEdit): ?><a class="btn btn-ghost btn-sm" href="<?= site_url('clientes/'.$row['id']) ?>">Editar<span class="sr-only"> <?= esc($row['nombre']) ?></span></a><?php endif ?></td></tr><?php endforeach ?>
-</tbody></table></div><?php endif ?>
-<?= view('partials/pagination',['total'=>$total,'page'=>$page,'base'=>'clientes','params'=>['q'=>$q,'estado'=>$status]]) ?></div>
+<?= $this->extend('layouts/app') ?>
+<?= $this->section('content') ?>
+
+<?= view('partials/page_header', [
+    'context' => 'Directorio',
+    'title' => $title,
+    'description' => $description,
+    'primaryAction' => $canCreate ? ['label' => 'Nuevo cliente', 'url' => site_url('clientes/nuevo'), 'icon' => 'plus', 'dialog' => 'client-form-modal'] : null,
+], ['saveData' => false]) ?>
+
+<section class="card card-border bg-base-100" aria-labelledby="client-results-title">
+    <h2 id="client-results-title" class="sr-only">Resultados del directorio</h2>
+    <form method="get" class="filter-toolbar" data-datatable-filter="clients">
+        <label class="input min-w-0 flex-1">
+            <i data-lucide="search" class="icon" aria-hidden="true"></i>
+            <input name="q" value="<?= esc($q, 'attr') ?>" aria-label="Buscar por nombre o identificación" placeholder="Nombre o identificación…" maxlength="100" autocomplete="off">
+        </label>
+        <select name="estado" aria-label="Estado" class="select">
+            <option value="">Todos los estados</option>
+            <option value="1" <?= $status === '1' ? 'selected' : '' ?>>Activos</option>
+            <option value="0" <?= $status === '0' ? 'selected' : '' ?>>Inactivos</option>
+        </select>
+        <button class="btn" type="submit">Buscar</button>
+    </form>
+
+    <?php if (!$rows): ?>
+        <?= view('partials/empty_state', [
+            'icon' => 'users',
+            'title' => 'No hay clientes para mostrar',
+            'description' => 'Registra un cliente o ajusta los filtros de búsqueda.',
+            'action' => $canCreate ? ['label' => 'Nuevo cliente', 'url' => site_url('clientes/nuevo')] : null,
+        ], ['saveData' => false]) ?>
+    <?php else: ?>
+        <div class="hidden overflow-x-auto md:block">
+            <table class="table" data-datatable="clients" data-source="<?= site_url('clientes/datos') ?>" data-records-base="<?= site_url('clientes') ?>" data-export-csv="<?= site_url('clientes/exportar.csv') ?>" data-export-xlsx="<?= site_url('clientes/exportar.xlsx') ?>" data-can-edit="<?= $canEdit ? 'true' : 'false' ?>">
+                <caption class="sr-only">Directorio de clientes</caption>
+                <thead><tr><th scope="col">Cliente</th><th scope="col">Identificación</th><th scope="col">Estado</th><th scope="col" class="dt-actions"><span class="sr-only">Acciones</span></th></tr></thead>
+                <tbody>
+                <?php foreach ($rows as $row): ?>
+                    <tr>
+                        <td><div class="max-w-md break-words font-semibold"><?= esc($row['nombre']) ?></div><span class="font-data text-xs text-base-content/70">Cliente #<?= $row['id'] ?></span></td>
+                        <td class="font-data"><?= esc($row['identificacion'] ?: 'No informada') ?></td>
+                        <td><span class="badge <?= $row['activo'] ? 'badge-success badge-soft' : 'badge-ghost' ?>"><?= $row['activo'] ? 'Activo' : 'Inactivo' ?></span></td>
+                        <td class="text-right"><div class="flex justify-end gap-2"><a class="btn" href="<?= site_url('clientes/' . $row['id'] . '/expediente') ?>">Ver<span class="sr-only"> expediente de <?= esc($row['nombre']) ?></span></a><?php if ($canEdit): ?><a class="btn" href="<?= site_url('clientes/' . $row['id']) ?>">Editar<span class="sr-only"> <?= esc($row['nombre']) ?></span></a><?php endif ?></div></td>
+                    </tr>
+                <?php endforeach ?>
+                </tbody>
+            </table>
+        </div>
+        <ul class="divide-y divide-base-300 md:hidden" aria-label="Directorio de clientes">
+        <?php foreach ($rows as $row): ?>
+            <li class="record-card">
+                <div class="min-w-0 flex-1">
+                    <p class="break-words font-semibold"><?= esc($row['nombre']) ?></p>
+                    <div class="mt-1 flex flex-wrap items-center gap-2"><span class="font-data text-sm text-base-content/70"><?= esc($row['identificacion'] ?: 'Sin identificación') ?></span><span class="badge <?= $row['activo'] ? 'badge-success badge-soft' : 'badge-ghost' ?>"><?= $row['activo'] ? 'Activo' : 'Inactivo' ?></span></div>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                    <a class="btn" href="<?= site_url('clientes/' . $row['id'] . '/expediente') ?>">Abrir<span class="sr-only"> expediente de <?= esc($row['nombre']) ?></span></a>
+                    <?php if ($canEdit): ?><a class="btn btn-square" href="<?= site_url('clientes/' . $row['id']) ?>" aria-label="Editar <?= esc($row['nombre'], 'attr') ?>"><i data-lucide="pencil" class="icon" aria-hidden="true"></i></a><?php endif ?>
+                </div>
+            </li>
+        <?php endforeach ?>
+        </ul>
+    <?php endif ?>
+
+    <div class="datatable-fallback-pagination">
+        <?= view('partials/pagination', ['total' => $total, 'page' => $page, 'base' => 'clientes', 'params' => ['q' => $q, 'estado' => $status]], ['saveData' => false]) ?>
+    </div>
+</section>
+
+<?php
+$modal = $clientModal ?? [
+    'title' => 'Nuevo cliente',
+    'description' => 'Completa lo que conoces. La identificación y el contacto son opcionales.',
+    'client' => [],
+    'autoOpen' => false,
+    'canChangeState' => false,
+];
+?>
+<?php if ($canCreate || !empty($modal['client'])): ?>
+    <?= view('clients/form', $modal, ['saveData' => false]) ?>
+<?php endif ?>
+
 <?= $this->endSection() ?>

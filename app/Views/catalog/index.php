@@ -1,7 +1,60 @@
-<?= $this->extend('layout') ?><?= $this->section('content') ?>
-<div class="page-heading"><div><p class="eyebrow mb-2">Productos y servicios</p><h1 class="text-3xl font-semibold">Catálogo</h1><p class="mt-2 text-base-content/65">Conceptos y precios de referencia para tu negocio.</p></div><a class="btn btn-primary" href="<?= site_url('catalogo/nuevo') ?>"><i data-lucide="plus" class="icon" aria-hidden="true"></i>Nuevo ítem</a></div>
-<section class="panel"><form method="get" class="p-5 border-b border-base-300 flex gap-3"><input class="input flex-1" name="q" value="<?= esc($q,'attr') ?>" aria-label="Buscar por nombre o código" placeholder="Buscar por nombre o código"><button class="btn">Buscar</button></form>
-<?php if (!$rows): ?><div class="empty"><i data-lucide="package" class="w-10 h-10 mx-auto mb-4 text-base-content/40" aria-hidden="true"></i><h2 class="text-xl font-semibold">Tu catálogo empieza aquí</h2><p class="text-base-content/65 mt-2">Añade los productos o servicios que ofreces.</p></div>
-<?php else: ?><div class="overflow-x-auto"><table class="table"><caption class="sr-only">Productos y servicios</caption><thead><tr><th>Concepto</th><th>Tipo</th><th class="text-right">Precio USD</th><th>Estado</th><th>Acciones</th></tr></thead><tbody><?php foreach ($rows as $row): ?><tr><td><strong><?= esc($row['nombre']) ?></strong><div class="text-xs text-base-content/60"><?= esc($row['codigo']) ?></div></td><td><?= $row['tipo']==='SERVICIO'?'Servicio':'Producto' ?></td><td class="text-right tabular-nums font-mono"><?= $row['precio_referencia']===null?'No informado':esc($row['precio_referencia']) ?></td><td><?= $row['activo']?'Activo':'Inactivo' ?></td><td><a class="btn btn-sm btn-ghost" href="<?= site_url('catalogo/'.$row['id']) ?>">Editar<span class="sr-only"> <?= esc($row['nombre']) ?></span></a></td></tr><?php endforeach ?></tbody></table></div><?php endif ?>
-<?= view('partials/pagination',['total'=>$total,'page'=>$page,'base'=>'catalogo','params'=>['q'=>$q]]) ?></section>
+<?= $this->extend('layouts/app') ?>
+<?= $this->section('content') ?>
+
+<?= view('partials/page_header', [
+    'context' => 'Productos y servicios',
+    'title' => $title,
+    'description' => $description,
+    'primaryAction' => ['label' => 'Nuevo ítem', 'url' => site_url('catalogo/nuevo'), 'icon' => 'plus'],
+], ['saveData' => false]) ?>
+
+<section class="card card-border bg-base-100" aria-labelledby="catalog-results-title">
+    <h2 id="catalog-results-title" class="sr-only">Resultados del catálogo</h2>
+    <form method="get" class="filter-toolbar">
+        <label class="input min-w-0 flex-1"><i data-lucide="search" class="icon" aria-hidden="true"></i><input name="q" value="<?= esc($q, 'attr') ?>" aria-label="Buscar por nombre o código" placeholder="Nombre o código…" maxlength="100" autocomplete="off"></label>
+        <button class="btn" type="submit">Buscar</button>
+    </form>
+
+    <?php if (!$rows): ?>
+        <?= view('partials/empty_state', ['icon' => 'package', 'title' => 'Tu catálogo empieza aquí', 'description' => 'Añade los productos o servicios que ofreces.', 'action' => ['label' => 'Nuevo ítem', 'url' => site_url('catalogo/nuevo')]], ['saveData' => false]) ?>
+    <?php else: ?>
+        <div class="hidden overflow-x-auto md:block">
+            <table class="table">
+                <caption class="sr-only">Productos y servicios</caption>
+                <thead><tr><th scope="col">Concepto</th><th scope="col">Tipo</th><th scope="col" class="text-right">Precio USD</th><th scope="col">Estado</th><th scope="col" class="text-right">Acciones</th></tr></thead>
+                <tbody>
+                <?php foreach ($rows as $row): ?>
+                    <tr><td><strong class="break-words"><?= esc($row['nombre']) ?></strong><div class="font-data text-xs text-base-content/70"><?= esc($row['codigo']) ?></div></td><td><?= $row['tipo'] === 'SERVICIO' ? 'Servicio' : 'Producto' ?></td><td class="font-data text-right"><?= $row['precio_referencia'] === null ? 'No informado' : esc($row['precio_referencia']) ?></td><td><span class="badge <?= $row['activo'] ? 'badge-success badge-soft' : 'badge-ghost' ?>"><?= $row['activo'] ? 'Activo' : 'Inactivo' ?></span></td><td class="text-right"><div class="flex justify-end gap-2"><a class="btn" href="<?= site_url('catalogo/' . $row['id'] . '/detalle') ?>" data-dialog-open="catalog-item-<?= (int) $row['id'] ?>">Ver<span class="sr-only"> detalle de <?= esc($row['nombre']) ?></span></a><a class="btn" href="<?= site_url('catalogo/' . $row['id']) ?>">Editar<span class="sr-only"> <?= esc($row['nombre']) ?></span></a></div></td></tr>
+                <?php endforeach ?>
+                </tbody>
+            </table>
+        </div>
+        <ul class="divide-y divide-base-300 md:hidden" aria-label="Productos y servicios">
+        <?php foreach ($rows as $row): ?>
+            <li class="record-card"><div class="min-w-0"><p class="break-words font-semibold"><?= esc($row['nombre']) ?></p><p class="font-data mt-1 text-sm text-base-content/70"><?= esc($row['codigo']) ?></p></div><div class="text-right"><p class="font-data font-medium"><?= $row['precio_referencia'] === null ? 'Sin precio' : '$' . esc($row['precio_referencia']) ?></p><div class="mt-2 flex flex-wrap justify-end gap-2"><a class="btn" href="<?= site_url('catalogo/' . $row['id'] . '/detalle') ?>" data-dialog-open="catalog-item-<?= (int) $row['id'] ?>">Ver<span class="sr-only"> detalle de <?= esc($row['nombre']) ?></span></a><a class="btn" href="<?= site_url('catalogo/' . $row['id']) ?>">Editar<span class="sr-only"> <?= esc($row['nombre']) ?></span></a></div></div></li>
+        <?php endforeach ?>
+        </ul>
+        <?php foreach ($rows as $row): ?>
+        <dialog id="catalog-item-<?= (int) $row['id'] ?>" class="modal">
+            <div class="modal-box max-w-xl">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0"><p class="font-data text-sm text-base-content/70"><?= esc($row['codigo']) ?></p><h2 class="mt-1 break-words text-xl font-semibold"><?= esc($row['nombre']) ?></h2></div>
+                    <span class="badge <?= $row['activo'] ? 'badge-success badge-soft' : 'badge-ghost' ?>"><?= $row['activo'] ? 'Activo' : 'Inactivo' ?></span>
+                </div>
+                <dl class="mt-5 grid grid-cols-2 gap-4 border-y border-base-300 py-4">
+                    <div><dt class="text-sm text-base-content/70">Tipo</dt><dd class="mt-1 font-medium"><?= $row['tipo'] === 'SERVICIO' ? 'Servicio' : 'Producto' ?></dd></div>
+                    <div><dt class="text-sm text-base-content/70">Precio de referencia</dt><dd class="font-data mt-1 font-medium"><?= $row['precio_referencia'] === null ? 'No informado' : '$' . esc(number_format((float) $row['precio_referencia'], 2, '.', ',')) ?></dd></div>
+                </dl>
+                <div class="modal-action">
+                    <form method="dialog"><button class="btn">Cerrar</button></form>
+                    <a class="btn btn-primary" href="<?= site_url('catalogo/' . $row['id']) ?>"><i data-lucide="pencil" class="icon" aria-hidden="true"></i>Editar ítem</a>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop"><button>Cerrar detalle</button></form>
+        </dialog>
+        <?php endforeach ?>
+    <?php endif ?>
+
+</section>
+
 <?= $this->endSection() ?>

@@ -97,4 +97,141 @@ final class BaseFeaturesTest extends CIUnitTestCase
         auth()->logout();
         $this->actingAs($this->account('cliente'))->get('/clientes')->assertStatus(403);
     }
+
+    public function testInternalPagesExposeTheSharedVisualShellAndPageHeader(): void
+    {
+        $admin = $this->account('administrador');
+
+        foreach (['/', '/clientes', '/clientes/nuevo', '/catalogo', '/catalogo/nuevo'] as $path) {
+            $response = $this->actingAs($admin)->get($path);
+            $response->assertStatus(200);
+            $body = $response->response()->getBody();
+            $this->assertStringContainsString('data-theme="cobros"', $body, $path);
+            $this->assertStringContainsString('class="drawer lg:drawer-open"', $body, $path);
+            $this->assertStringContainsString('class="page-header', $body, $path);
+            $this->assertStringContainsString('data-page-pattern=', $body, $path);
+        }
+    }
+
+    public function testAdministratorDashboardSummarizesAvailableOperations(): void
+    {
+        $admin = $this->account('administrador');
+        $now = gmdate('Y-m-d H:i:s');
+
+        $this->db->table('clientes')->insertBatch([
+            ['nombre' => 'Cliente activo A', 'activo' => 1, 'version' => 1, 'creado_en' => $now],
+            ['nombre' => 'Cliente activo B', 'activo' => 1, 'version' => 1, 'creado_en' => $now],
+            ['nombre' => 'Cliente inactivo', 'activo' => 0, 'version' => 1, 'creado_en' => $now],
+        ]);
+        $this->db->table('items')->insertBatch([
+            ['codigo' => 'SERV-01', 'tipo' => 'SERVICIO', 'nombre' => 'Servicio activo', 'precio_referencia' => '10.00', 'activo' => 1, 'version' => 1],
+            ['codigo' => 'PROD-01', 'tipo' => 'PRODUCTO', 'nombre' => 'Producto inactivo', 'precio_referencia' => '20.00', 'activo' => 0, 'version' => 1],
+        ]);
+        $this->db->table('auditoria_eventos')->insert([
+            'usuario_id' => $admin->id,
+            'registrado_en' => $now,
+            'accion' => 'catalogo.guardar',
+            'referencia_textual' => 'item:2',
+            'detalle_sanitizado' => '{}',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/');
+        $response->assertStatus(200);
+        $body = $response->response()->getBody();
+
+        $this->assertStringContainsString('<title>Inicio · Cobros</title>', $body);
+        $this->assertStringContainsString('data-dashboard="admin"', $body);
+        $this->assertStringContainsString('data-metric="clients-total">3</', $body);
+        $this->assertStringContainsString('data-metric="clients-active">2</', $body);
+        $this->assertStringContainsString('data-metric="catalog-active">1 de 2</', $body);
+        $this->assertStringContainsString('Actividad reciente', $body);
+        $this->assertStringContainsString('Actualizaste el catálogo', $body);
+        $this->assertStringContainsString('break-words font-semibold', $body);
+        $this->assertStringNotContainsString('truncate font-semibold', $body);
+        $this->assertStringContainsString('list-col-grow min-w-0', $body);
+        $this->assertStringContainsString('[grid-row:2]', $body);
+        $this->assertStringContainsString('clientes&#x2F;nuevo', $body);
+        $this->assertStringContainsString('catalogo/nuevo', $body);
+    }
+
+    public function testClientEditorOpensAsAnAccessibleSemanticModal(): void
+    {
+        $admin = $this->account('administrador');
+
+        $response = $this->actingAs($admin)->get('/clientes/nuevo');
+        $response->assertStatus(200);
+        $body = $response->response()->getBody();
+
+        $this->assertStringContainsString('<dialog id="client-form-modal"', $body);
+        $this->assertStringContainsString('aria-labelledby="client-form-title"', $body);
+        $this->assertStringContainsString('aria-describedby="client-form-description"', $body);
+        $this->assertStringContainsString('data-auto-open="true"', $body);
+        $this->assertStringContainsString('<fieldset', $body);
+        $this->assertStringContainsString('class="modal-action', $body);
+    }
+
+    public function testCatalogFormExposesBreadcrumbsAndSemanticFieldGroups(): void
+    {
+        $admin = $this->account('administrador');
+
+        $response = $this->actingAs($admin)->get('/catalogo/nuevo');
+        $response->assertStatus(200);
+        $body = $response->response()->getBody();
+
+        $this->assertStringContainsString('aria-label="Migas de pan"', $body);
+        $this->assertStringContainsString('<fieldset', $body);
+        $this->assertStringContainsString('class="form-actions', $body);
+    }
+
+    public function testStandaloneAccessPagesUseTheCobrosTheme(): void
+    {
+        auth()->logout();
+        $response = $this->get('/login');
+        $response->assertStatus(200);
+        $login = $response->response()->getBody();
+        $this->assertStringContainsString('data-theme="cobros"', $login);
+
+        auth()->logout();
+        $response = $this->actingAs($this->account('cliente'))->get('/clientes');
+        $response->assertStatus(403);
+        $denied = $response->response()->getBody();
+        $this->assertStringContainsString('data-theme="cobros"', $denied);
+        $this->assertStringContainsString('class="access-shell', $denied);
+    }
+
+    public function testSupportingTextOnLightSurfacesUsesAccessibleContrastTokens(): void
+    {
+        $viewFiles = [
+            APPPATH . 'Views/auth/login.php',
+            APPPATH . 'Views/catalog/form.php',
+            APPPATH . 'Views/catalog/index.php',
+            APPPATH . 'Views/clients/form.php',
+            APPPATH . 'Views/clients/index.php',
+            APPPATH . 'Views/dashboard.php',
+            APPPATH . 'Views/partials/empty_state.php',
+            APPPATH . 'Views/partials/page_header.php',
+            APPPATH . 'Views/partials/topbar.php',
+        ];
+
+        foreach ($viewFiles as $file) {
+            $contents = file_get_contents($file);
+            $this->assertIsString($contents, $file);
+            $this->assertDoesNotMatchRegularExpression(
+                '/text-base-content\/(?:55|60|65)\b/',
+                $contents,
+                $file . ' uses a muted text token below 4.5:1 on a light surface.'
+            );
+        }
+    }
+
+    public function testSidebarCompactionDoesNotAnimateLayoutWidth(): void
+    {
+        $layout = file_get_contents(ROOTPATH . 'resources/css/layout.css');
+        $this->assertIsString($layout);
+        $this->assertStringNotContainsString(
+            'transition: width',
+            $layout,
+            'Animating sidebar width causes layout work and contradicts the visual architecture.'
+        );
+    }
 }

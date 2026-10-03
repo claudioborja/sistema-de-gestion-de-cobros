@@ -1,11 +1,28 @@
 {
+  "resources/fonts/IBMPlexMono-Medium.ttf": {
+    "file": "assets/IBMPlexMono-Medium-DXvU8FDk.ttf",
+    "src": "resources/fonts/IBMPlexMono-Medium.ttf"
+  },
+  "resources/fonts/IBMPlexMono-Regular.ttf": {
+    "file": "assets/IBMPlexMono-Regular-uJmBiwLb.ttf",
+    "src": "resources/fonts/IBMPlexMono-Regular.ttf"
+  },
+  "resources/fonts/IBMPlexSansVar-Roman.ttf": {
+    "file": "assets/IBMPlexSansVar-Roman-DEcZBQRf.ttf",
+    "src": "resources/fonts/IBMPlexSansVar-Roman.ttf"
+  },
   "resources/js/app.js": {
-    "file": "assets/app-DWpo4o_n.js",
+    "file": "assets/app-CgfipPT9.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "css": [
-      "assets/app-Bw53W88y.css"
+      "assets/app-B05_4OyF.css"
+    ],
+    "assets": [
+      "assets/IBMPlexSansVar-Roman-DEcZBQRf.ttf",
+      "assets/IBMPlexMono-Regular-uJmBiwLb.ttf",
+      "assets/IBMPlexMono-Medium-DXvU8FDk.ttf"
     ]
   }
 }
